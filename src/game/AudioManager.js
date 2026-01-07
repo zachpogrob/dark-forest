@@ -32,6 +32,9 @@ export class AudioManager {
     // Ambient wind
     this.sounds.wind = this.createWindSound();
 
+    // Creepy ambient music
+    this.sounds.music = this.createCreepyMusic();
+
     // Footstep stomp
     this.sounds.stomp = this.createStompSound();
 
@@ -43,6 +46,94 @@ export class AudioManager {
 
     // Jumpscare sound
     this.sounds.jumpscare = this.createJumpscareSound();
+  }
+
+  createCreepyMusic() {
+    const audio = new THREE.Audio(this.listener);
+    const duration = 32; // Longer loop for variety
+    const sampleRate = this.audioContext.sampleRate;
+    const buffer = this.audioContext.createBuffer(2, duration * sampleRate, sampleRate);
+    const leftChannel = buffer.getChannelData(0);
+    const rightChannel = buffer.getChannelData(1);
+
+    // Musical frequencies (minor key, dissonant)
+    const baseFreq = 55; // Low A
+    const frequencies = [
+      baseFreq,           // A1 - root drone
+      baseFreq * 1.5,     // E2 - fifth
+      baseFreq * 1.2,     // C2 - minor third
+      baseFreq * 1.8,     // F2 - tritone (dissonant)
+      baseFreq * 2.5,     // C#3 - more dissonance
+    ];
+
+    for (let i = 0; i < leftChannel.length; i++) {
+      const t = i / sampleRate;
+      const progress = t / duration;
+      let sampleL = 0;
+      let sampleR = 0;
+
+      // Layer 1: Deep bass drone with slow modulation
+      const droneMod = 0.5 + 0.5 * Math.sin(t * 0.1);
+      const drone = Math.sin(t * frequencies[0] * Math.PI * 2) * 0.15 * droneMod;
+      sampleL += drone;
+      sampleR += drone;
+
+      // Layer 2: Evolving pad with multiple detuned oscillators
+      const padEnvelope = 0.3 + 0.7 * Math.sin(t * 0.05 * Math.PI * 2);
+      for (let j = 1; j < 4; j++) {
+        const detune = 1 + Math.sin(t * 0.2 + j) * 0.01;
+        const padTone = Math.sin(t * frequencies[j] * detune * Math.PI * 2);
+        const pan = Math.sin(t * 0.1 + j * 2); // Slow stereo movement
+        sampleL += padTone * padEnvelope * 0.04 * (1 - pan * 0.3);
+        sampleR += padTone * padEnvelope * 0.04 * (1 + pan * 0.3);
+      }
+
+      // Layer 3: High dissonant tones that fade in/out
+      const highEnv = Math.max(0, Math.sin(t * 0.15) * Math.sin(t * 0.07));
+      const highTone = Math.sin(t * frequencies[4] * Math.PI * 2) * highEnv * 0.02;
+      sampleL += highTone * 0.7;
+      sampleR += highTone * 1.3;
+
+      // Layer 4: Subtle "breathing" noise
+      const breathRate = 0.25;
+      const breathEnv = Math.pow(Math.max(0, Math.sin(t * breathRate * Math.PI * 2)), 4);
+      const breathNoise = (Math.random() * 2 - 1) * breathEnv * 0.02;
+      sampleL += breathNoise;
+      sampleR += breathNoise * 0.8;
+
+      // Layer 5: Random creepy glitches/clicks
+      if (Math.random() < 0.00005) {
+        const glitch = (Math.random() * 2 - 1) * 0.15;
+        sampleL += glitch;
+        sampleR += glitch * (Math.random() > 0.5 ? 1 : -1);
+      }
+
+      // Layer 6: Very low sub-bass rumble
+      const subRumble = Math.sin(t * 25 * Math.PI * 2) * 0.08;
+      const rumbleEnv = 0.3 + 0.7 * Math.sin(t * 0.03);
+      sampleL += subRumble * rumbleEnv;
+      sampleR += subRumble * rumbleEnv;
+
+      // Layer 7: Occasional dissonant "string" swells
+      const swellPeriod = 8;
+      const swellPhase = (t % swellPeriod) / swellPeriod;
+      const swellEnv = swellPhase < 0.5 ? Math.pow(Math.sin(swellPhase * Math.PI), 2) : 0;
+      const stringFreq = frequencies[3] * 2;
+      const string1 = Math.sin(t * stringFreq * Math.PI * 2);
+      const string2 = Math.sin(t * stringFreq * 1.01 * Math.PI * 2); // Slight detune
+      sampleL += (string1 + string2) * swellEnv * 0.015;
+      sampleR += (string1 - string2) * swellEnv * 0.015;
+
+      // Soft limiting
+      leftChannel[i] = Math.tanh(sampleL * 1.5);
+      rightChannel[i] = Math.tanh(sampleR * 1.5);
+    }
+
+    audio.setBuffer(buffer);
+    audio.setLoop(true);
+    audio.setVolume(0.5);
+
+    return audio;
   }
 
   createWindSound() {
@@ -196,6 +287,11 @@ export class AudioManager {
       this.sounds.wind.play();
     }
 
+    // Start creepy music
+    if (this.sounds.music && !this.sounds.music.isPlaying) {
+      this.sounds.music.play();
+    }
+
     // Start heartbeat (will fade in when danger)
     if (this.sounds.heartbeat && !this.sounds.heartbeat.isPlaying) {
       this.sounds.heartbeat.play();
@@ -297,6 +393,9 @@ export class AudioManager {
     // Resume looping sounds
     if (this.sounds.wind && !this.sounds.wind.isPlaying) {
       this.sounds.wind.play();
+    }
+    if (this.sounds.music && !this.sounds.music.isPlaying) {
+      this.sounds.music.play();
     }
     if (this.sounds.heartbeat && !this.sounds.heartbeat.isPlaying) {
       this.sounds.heartbeat.play();
