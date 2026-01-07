@@ -74,7 +74,7 @@ export class AudioManager {
 
       // Layer 1: Deep bass drone with slow modulation
       const droneMod = 0.5 + 0.5 * Math.sin(t * 0.1);
-      const drone = Math.sin(t * frequencies[0] * Math.PI * 2) * 0.15 * droneMod;
+      const drone = Math.sin(t * frequencies[0] * Math.PI * 2) * 0.25 * droneMod;
       sampleL += drone;
       sampleR += drone;
 
@@ -84,13 +84,13 @@ export class AudioManager {
         const detune = 1 + Math.sin(t * 0.2 + j) * 0.01;
         const padTone = Math.sin(t * frequencies[j] * detune * Math.PI * 2);
         const pan = Math.sin(t * 0.1 + j * 2); // Slow stereo movement
-        sampleL += padTone * padEnvelope * 0.04 * (1 - pan * 0.3);
-        sampleR += padTone * padEnvelope * 0.04 * (1 + pan * 0.3);
+        sampleL += padTone * padEnvelope * 0.08 * (1 - pan * 0.3);
+        sampleR += padTone * padEnvelope * 0.08 * (1 + pan * 0.3);
       }
 
       // Layer 3: High dissonant tones that fade in/out
       const highEnv = Math.max(0, Math.sin(t * 0.15) * Math.sin(t * 0.07));
-      const highTone = Math.sin(t * frequencies[4] * Math.PI * 2) * highEnv * 0.02;
+      const highTone = Math.sin(t * frequencies[4] * Math.PI * 2) * highEnv * 0.04;
       sampleL += highTone * 0.7;
       sampleR += highTone * 1.3;
 
@@ -131,7 +131,7 @@ export class AudioManager {
 
     audio.setBuffer(buffer);
     audio.setLoop(true);
-    audio.setVolume(0.5);
+    audio.setVolume(0.8);
 
     return audio;
   }
